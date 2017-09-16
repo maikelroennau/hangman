@@ -5,11 +5,13 @@
  */
 package server;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
+import java.util.concurrent.ThreadLocalRandom;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  *
@@ -29,66 +31,62 @@ public class RequestHandler extends Thread {
 
     public void run() {
 
-        String linha = receiver.nextLine();
+        String request = this.receiver.nextLine();
 
-        System.out.println("Requisicao Recebida: " + linha);
+        System.out.println("Request received: " + request);
+        System.out.println("Atending request...");
 
-        if (linha.contains("LISTAARQUIVOS")) {
-            this.listaArquivos(linha.replace("LISTAARQUIVOS ", ""));
-        } else if (linha.contains("GETFREESPACE")) {
-            this.retornaEspacoLivre();
-        } else if (linha.contains("TESTARCONECCAO")) {
-            getConnectionStatus();
-        } else {
-            sender.println("Comando Invalido");
-            sender.flush();
+        switch (request) {
+            case "TESTARCONECCAO":
+                getConnectionStatus();
+                break;
+
+            case "BUSCARPALAVRA": {
+                try {
+                    getWord();
+                } catch (JSONException ex) {
+                    System.out.println("Failed creating JSON of word-tip.");
+                }
+            }
+            break;
+
+            case "-":
+                break;
+
+            default:
+                this.sender.println("Invalid Comand.");
+                this.sender.flush();
+                break;
         }
 
-        System.out.println("Encerrando conexao: " + linha);
+        System.out.println("Finished attending request.");
+        System.out.println("Closing connection...");
         try {
             this.socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.out.println("Connection closed.");
 
     }
 
-    private void listaArquivos(String strPath) {
-
-        File path = new File(strPath);
-        if (!path.exists()) {
-            sender.println("Diretorio Inexistente");
-            sender.flush();
-            return;
-        }
-
-        if (!path.isDirectory()) {
-            sender.println("Caminho nao eh um diretorio");
-            sender.flush();
-            return;
-        }
-
-        String[] arquivos = path.list();
-        if (arquivos.length == 0) {
-            sender.println("Diretorio nao possui arquivos");
-            sender.flush();
-            return;
-        }
-
-        for (String arquivo : arquivos) {
-            sender.println(arquivo);
-        }
-        sender.flush();
-    }
-
-    public void retornaEspacoLivre() {
-        File arquivo = new File("/");
-        sender.println(arquivo.getFreeSpace());
-        sender.flush();
-    }
-    
     public void getConnectionStatus() {
-        sender.println("CONECCAOOK");
-        sender.flush();
+        this.sender.println("CONECCAOOK");
+        this.sender.flush();
+    }
+
+    public void getWord() throws JSONException {
+        System.out.println("Selecting random word...");
+        int randon = ThreadLocalRandom.current().nextInt(0, Server.words.size());
+
+        String word = Server.words.get(randon);
+        String tip = Server.tips.get(word);
+
+        JSONObject json = new JSONObject();
+        json.put("palavra", word);
+        json.put("dica", tip);
+
+        this.sender.println(json);
+        this.sender.flush();
     }
 }
