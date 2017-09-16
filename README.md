@@ -1,2 +1,3 @@
-# hangman
-Simple implementation of a hangman game using a word server and a client to play.
+# Hangman
+
+Simple implementation of a hangman game using a word server and a client player.
