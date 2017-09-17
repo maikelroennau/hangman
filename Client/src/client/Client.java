@@ -22,8 +22,7 @@ public class Client {
     
     static String userName;
     static String userKey;
-    static int games = 0;
-    static int wins = 0;
+    static User user;
     
     /**
      * @param args the command line arguments
@@ -32,8 +31,6 @@ public class Client {
 
 //        String userName;
 //        String userKey;
-//        int games = 0;
-//        int wins = 0;
         
         Scanner scanner = new Scanner(System.in);
         
@@ -61,7 +58,9 @@ public class Client {
         
         System.out.print("Enter a user key: ");
 //        userKey = scanner.nextLine();
-        userKey = "maikel";
+        userKey = "ronnau";
+        
+        user = new User(userName, userKey);
         
         Socket socket;
         Scanner receiver;
@@ -72,7 +71,6 @@ public class Client {
             int option;
             
             do {
-                
                 System.out.println("Choose an option:");
                 System.out.println("1 - Play");
                 System.out.println("2 - Show ranking");
@@ -94,12 +92,14 @@ public class Client {
                         break;
                         
                     case 3:
-                        System.out.println("Ending session...");
+                        finishSession(receiver, sender);
+                        System.out.println("\nEnding session...");
+                        socket.close();
                         System.exit(0);
                         break;
                         
                     default:
-                        System.out.println("Invalid option.");
+                        System.out.println("\nInvalid option.");
                     break;
                 }
             } while (option != 3);
@@ -109,7 +109,7 @@ public class Client {
     }
     
     public static void play(Scanner receiver, PrintWriter sender) {
-        System.out.println("Requesting a word from the server...");
+        System.out.println("\nRequesting a word from the server...");
         sender.println("BUSCARPALAVRA");
         sender.flush();
 
@@ -183,12 +183,11 @@ public class Client {
         if (status) {
             System.out.println("\nCongratulations!");
             System.out.println("The word was: " + word + "\n");
-            wins++;
-            games++;
+            user.updateWins();
         } else {
             System.out.println("\nGame over!");
             System.out.println("The word was: " + word + "\n");
-            games++;
+            user.updateDefeats();
         }
     }
     
@@ -211,7 +210,7 @@ public class Client {
     }
     
     public static void showRank(Scanner receiver, PrintWriter sender) {
-        System.out.println("Requesting rank information...");
+        System.out.println("\nRequesting rank information...");
         sender.println("BUSCARRANKING");
         sender.flush();
 
@@ -220,7 +219,24 @@ public class Client {
         try {
             response = new JSONObject(receiver.nextLine());
         } catch (JSONException ex) {
-            System.out.println("Failed to parse rank.");
+            System.out.println("\nFailed to parse rank.");
+        }
+    }
+    
+    public static void finishSession(Scanner receiver, PrintWriter sender) {
+        if (user.getWins() + user.getDefeats() != 0) {
+            System.out.println("\nUpdating scores to server...");
+
+            String command = "ENCERRARJOGO";
+            command += " " + user.getUserName();
+            command += " " + user.getUserKey();
+            command += " " + user.getWins();
+            command += " " + user.getDefeats();
+
+            sender.println(command);
+            sender.flush();
+
+            System.out.println("User score updated.");
         }
     }
 }
