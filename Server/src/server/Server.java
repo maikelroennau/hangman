@@ -5,6 +5,8 @@
  */
 package server;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -15,6 +17,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  *
@@ -24,6 +31,8 @@ public class Server {
 
     static ArrayList<String> words = new ArrayList<>();
     static HashMap<String, String> tips = new HashMap<>();
+    
+    static JSONObject rank = new JSONObject();
 
     /**
      * @param args the command line arguments
@@ -31,6 +40,7 @@ public class Server {
     public static void main(String[] args) {
 
         loadWordList();
+        loadRank();
 
         ServerSocket server;
         int port = 8765;
@@ -75,6 +85,20 @@ public class Server {
         } catch (IOException ex) {
             System.out.println("Failed loading word list. Shutting down...");
             System.exit(0);
+        }
+    }
+    
+    public static void loadRank() {
+        System.out.println("Reading rank file...");
+        try {
+            String rankFile = "rank.json";
+            
+            JSONObject rankRead = new JSONObject(new Scanner(new File(rankFile)).useDelimiter("\\Z").next());
+            rank = rankRead;
+            
+            System.out.println("Rank file sucessfull loaded.");
+        } catch (FileNotFoundException | JSONException ex) {
+            System.out.println("Failed loading rank file.");
         }
     }
 }
