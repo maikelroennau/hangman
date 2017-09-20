@@ -25,6 +25,16 @@ public class User {
         this.winPercentage = 0;
     }
 
+    public User(String userName, String userKey, int wins, int defeats) {
+        this.userName = userName;
+        this.userKey = userKey;
+        this.wins = wins;
+        this.defeats = defeats;
+        this.winPercentage = calculateWinPercentage();
+    }
+    
+    
+
     public String getUserName() {
         return userName;
     }

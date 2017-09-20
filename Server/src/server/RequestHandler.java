@@ -8,11 +8,9 @@ package server;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -35,11 +33,17 @@ public class RequestHandler extends Thread {
     public void run() {
 
         String request = this.receiver.nextLine();
-        String command = request.split(" ")[0];
+        String command = "";
+        
+        if (request.split(" ").length > 0) {
+            command = request.split(" ")[0];
+        } else {
+            command = request;
+        }
 
         System.out.println("Request received: " + request);
         System.out.println("Atending request...");
-
+        
         switch (command) {
             case "TESTARCONECCAO":
                 getConnectionStatus();
@@ -52,10 +56,10 @@ public class RequestHandler extends Thread {
                     System.out.println("Failed creating JSON of word-tip.");
                 }
             }
-            break;
-            
+                break;
+
             case "BUSCARRANKING":
-                
+//                getRank();
                 break;
 
             case "ENCERRARJOGO":
@@ -98,41 +102,73 @@ public class RequestHandler extends Thread {
         this.sender.println(json);
         this.sender.flush();
     }
-    
+
     public void getRank() {
         // Reads the raking file
         // Converts it to JSON
         // Send back to the client
     }
-    
+
     public void updateRankFile(String request) {
         try {
-            // ENCERRARJOGO tales chavetales 10 2
-
+            // ENCERRARJOGO maikel ronnau 0 1
             String[] data = request.split(" ");
-
-//            System.out.println(request);
-//            System.out.println(Arrays.toString(data));
-
-            JSONObject userData = new JSONObject();
-            userData.put("usuario", data[1]);
             
-            getUserHistory(data[1], data[2]);
+            System.out.println(Server.rank.toString());
+            
+            int userIndex = getUserHistory(data[1], data[2]);
+            JSONObject userData;
+            
+            if (userIndex == -1) {
+                userData = new JSONObject();
+                userData.put("usuario", data[1]);
+                userData.put("chave", data[2]);
+                userData.put("vitorias", Integer.parseInt(data[3]));
+                userData.put("derrotas", Integer.parseInt(data[4]));
+                userData.put("percentual", User.calculateWinPercentage(Integer.parseInt(data[3]), Integer.parseInt(data[4])));
+                
+                Server.rank.append("ranking", userData);
+            } else {
+                userData = new JSONObject(new JSONArray(Server.rank.getJSONArray("ranking").toString()).get(userIndex).toString());
+                userData.put("vitorias", userData.getInt("vitorias") + Integer.parseInt(data[3]));
+                userData.put("derrotas", userData.getInt("derrotas") + Integer.parseInt(data[4]));
+                userData.put("percentual", User.calculateWinPercentage(userData.getInt("vitorias"), userData.getInt("derrotas")));
+                
+                Server.rank = new JSONObject(Server.rank.getJSONArray("ranking").remove(userIndex).toString());
+                Server.rank.append("ranking", userData);
+            }
+            
+            System.out.println(Server.rank.toString());
         } catch (JSONException ex) {
             System.out.println("Failed building user data JSON.");
+            ex.printStackTrace();
         }
     }
-    
-    public JSONObject getUserHistory(String user, String key) {
+
+    public int getUserHistory(String user, String key) {
         try {
-            System.out.println(Server.rank.toString());
-            System.out.println(Server.rank.getJSONObject("ranking").toString());
+            JSONArray ranking = new JSONArray(Server.rank.getJSONArray("ranking").toString());
+            JSONObject userData = new JSONObject();
             
+            for (int i = 0; i < ranking.length(); i++) {
+                userData = new JSONObject(ranking.get(i).toString());
+
+                try {
+                    if (userData.getString("usuario").equals(user) && userData.getString("chave").equals(key)) {
+                        return i;
+                    }
+                } catch (JSONException e) {
+                    System.out.println("User not found. Creating new entry.");
+                    userData = null;
+                    i = -1;
+                }
+            }
             
+            return -1;
         } catch (JSONException ex) {
             System.out.println("Failed checking user data.");
         }
-        
-        return new JSONObject();
+
+        return -1;
     }
 }

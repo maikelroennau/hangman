@@ -19,11 +19,11 @@ import org.json.JSONObject;
  * @author 110453310
  */
 public class Client {
-    
+
     static String userName;
     static String userKey;
     static User user;
-    
+
     /**
      * @param args the command line arguments
      */
@@ -31,13 +31,12 @@ public class Client {
 
 //        String userName;
 //        String userKey;
-        
         Scanner scanner = new Scanner(System.in);
-        
+
         System.out.print("Enter the Server IP address: ");
 //        String ipServer = scanner.nextLine();
         String ipServer = "localhost";
-        
+
         System.out.print("Enter the Server port: ");
 //        int portServer = scanner.nextInt();
 //        scanner.nextLine();
@@ -51,25 +50,25 @@ public class Client {
             System.out.println("Ending session...");
             System.exit(0);
         }
-        
+
         System.out.print("Enter a username: ");
 //        userName = scanner.nextLine();
         userName = "maikel";
-        
+
         System.out.print("Enter a user key: ");
 //        userKey = scanner.nextLine();
         userKey = "ronnau";
-        
+
         user = new User(userName, userKey);
-        
+
         Socket socket;
         Scanner receiver;
         PrintWriter sender;
-        
+
         try {
-            
+
             int option;
-            
+
             do {
                 System.out.println("Choose an option:");
                 System.out.println("1 - Play");
@@ -81,33 +80,33 @@ public class Client {
                 socket = new Socket(ipServer, portServer);
                 receiver = new Scanner(socket.getInputStream());
                 sender = new PrintWriter(socket.getOutputStream());
-                
-                switch(option) {
+
+                switch (option) {
                     case 1:
                         play(receiver, sender);
                         break;
-                        
+
                     case 2:
                         showRank(receiver, sender);
                         break;
-                        
+
                     case 3:
                         finishSession(receiver, sender);
                         System.out.println("\nEnding session...");
                         socket.close();
                         System.exit(0);
                         break;
-                        
+
                     default:
                         System.out.println("\nInvalid option.");
-                    break;
+                        break;
                 }
             } while (option != 3);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    
+
     public static void play(Scanner receiver, PrintWriter sender) {
         System.out.println("\nRequesting a word from the server...");
         sender.println("BUSCARPALAVRA");
@@ -116,7 +115,7 @@ public class Client {
         JSONObject response = null;
         String word = "";
         String tip = "";
-        
+
         try {
             response = new JSONObject(receiver.nextLine());
             word = response.getString("palavra");
@@ -124,48 +123,48 @@ public class Client {
         } catch (JSONException ex) {
             System.out.println("Failed to parse word-tip.");
         }
-        
+
         ArrayList<Character> letters = new ArrayList<>();
         for (Character letter : word.toCharArray()) {
             letters.add(letter);
         }
-        
+
         int maxErrors = 4;
         int errors = 0;
         int hits = 0;
         int wordSize = letters.size();
         int total = 0;
-        
+
         ArrayList<Character> corrects = new ArrayList<>();
         ArrayList<Character> wrongs = new ArrayList<>();
-        
+
         Scanner scanner = new Scanner(System.in).useDelimiter("'");
         Character guess;
-        
+
         boolean status = false;
-        
+
         System.out.println("Starting game...");
-        
-        for(int i = 1; errors <= maxErrors; i++) {
+
+        for (int i = 1; errors <= maxErrors; i++) {
             System.out.println("\n---------------------------------------------");
             System.out.print("Round " + i + " - Hits: " + hits + " | Errors: " + errors);
             System.out.println("\tCorrects: " + Arrays.toString(corrects.toArray()).replace("[", "").replace("]", ""));
             System.out.println("\t\t\t\tWrongs..: " + Arrays.deepToString(wrongs.toArray()).replace("[", "").replace("]", ""));
-            
+
             total = printSlots(letters, corrects);
-            
-            if (hits >= 4) {
+
+            if (hits >= (int)wordSize / 2) {
                 System.out.println("\nTip: " + tip);
             }
-            
+
             System.out.print("\nGuess: ");
             guess = scanner.nextLine().charAt(0);
-            
+
             if (corrects.contains(guess) | wrongs.contains(guess)) {
                 System.out.println("You already used this word.");
                 continue;
             }
-            
+
             if (letters.contains(guess)) {
                 corrects.add(guess);
                 hits++;
@@ -173,13 +172,13 @@ public class Client {
                 wrongs.add(guess);
                 errors++;
             }
-            
+
             if (total == wordSize) {
                 status = true;
                 break;
             }
         }
-        
+
         if (status) {
             System.out.println("\nCongratulations!");
             System.out.println("The word was: " + word + "\n");
@@ -190,11 +189,11 @@ public class Client {
             user.updateDefeats();
         }
     }
-    
+
     public static int printSlots(ArrayList<Character> letters, ArrayList<Character> corrects) {
         String line = "";
         int total = 0;
-        
+
         for (Character letter : letters) {
             if (corrects.contains(letter)) {
                 line += letter + " ";
@@ -203,40 +202,43 @@ public class Client {
                 line += "_ ";
             }
         }
-        
+
         System.out.println("\nWord: " + line);
-        
-        return total+1;
+
+        return total + 1;
     }
-    
+
     public static void showRank(Scanner receiver, PrintWriter sender) {
         System.out.println("\nRequesting rank information...");
         sender.println("BUSCARRANKING");
         sender.flush();
 
         JSONObject response = null;
-        
+
         try {
             response = new JSONObject(receiver.nextLine());
         } catch (JSONException ex) {
             System.out.println("\nFailed to parse rank.");
         }
     }
-    
+
     public static void finishSession(Scanner receiver, PrintWriter sender) {
-        if (user.getWins() + user.getDefeats() != 0) {
-            System.out.println("\nUpdating scores to server...");
-
-            String command = "ENCERRARJOGO";
-            command += " " + user.getUserName();
-            command += " " + user.getUserKey();
-            command += " " + user.getWins();
-            command += " " + user.getDefeats();
-
-            sender.println(command);
-            sender.flush();
-
-            System.out.println("User score updated.");
-        }
+        sender.println("ENCERRARJOGO maikel ronnau 99 49");
+        sender.flush();
+//        if (user.getWins() + user.getDefeats() != 0) {
+//            System.out.println("\nUpdating scores to server...");
+//
+//            String command = "ENCERRARJOGO";
+//            command += " " + user.getUserName();
+//            command += " " + user.getUserKey();
+//            command += " " + user.getWins();
+//            command += " " + user.getDefeats();
+//            
+//            System.out.println(command);
+//            sender.println(command);
+//            sender.flush();
+//
+//            System.out.println("User score updated.");
+//        }
     }
 }

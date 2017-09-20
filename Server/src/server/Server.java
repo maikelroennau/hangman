@@ -13,13 +13,10 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -31,7 +28,7 @@ public class Server {
 
     static ArrayList<String> words = new ArrayList<>();
     static HashMap<String, String> tips = new HashMap<>();
-    
+
     static JSONObject rank = new JSONObject();
 
     /**
@@ -87,15 +84,15 @@ public class Server {
             System.exit(0);
         }
     }
-    
+
     public static void loadRank() {
         System.out.println("Reading rank file...");
         try {
             String rankFile = "rank.json";
-            
+
             JSONObject rankRead = new JSONObject(new Scanner(new File(rankFile)).useDelimiter("\\Z").next());
             rank = rankRead;
-            
+
             System.out.println("Rank file sucessfull loaded.");
         } catch (FileNotFoundException | JSONException ex) {
             System.out.println("Failed loading rank file.");
