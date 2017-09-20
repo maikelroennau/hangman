@@ -10,6 +10,8 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -34,7 +36,7 @@ public class RequestHandler extends Thread {
 
         String request = this.receiver.nextLine();
         String command = "";
-        
+
         if (request.split(" ").length > 0) {
             command = request.split(" ")[0];
         } else {
@@ -43,7 +45,7 @@ public class RequestHandler extends Thread {
 
         System.out.println("Request received: " + request);
         System.out.println("Atending request...");
-        
+
         switch (command) {
             case "TESTARCONECCAO":
                 getConnectionStatus();
@@ -56,10 +58,10 @@ public class RequestHandler extends Thread {
                     System.out.println("Failed creating JSON of word-tip.");
                 }
             }
-                break;
+            break;
 
             case "BUSCARRANKING":
-//                getRank();
+                getRank();
                 break;
 
             case "ENCERRARJOGO":
@@ -107,18 +109,21 @@ public class RequestHandler extends Thread {
         // Reads the raking file
         // Converts it to JSON
         // Send back to the client
+        System.out.println(Server.rank.toString());
+        this.sender.println(Server.rank.toString());
+        this.sender.flush();
     }
 
     public void updateRankFile(String request) {
         try {
             // ENCERRARJOGO maikel ronnau 0 1
             String[] data = request.split(" ");
-            
+
             System.out.println(Server.rank.toString());
-            
+
             int userIndex = getUserHistory(data[1], data[2]);
             JSONObject userData;
-            
+
             if (userIndex == -1) {
                 userData = new JSONObject();
                 userData.put("usuario", data[1]);
@@ -126,18 +131,18 @@ public class RequestHandler extends Thread {
                 userData.put("vitorias", Integer.parseInt(data[3]));
                 userData.put("derrotas", Integer.parseInt(data[4]));
                 userData.put("percentual", User.calculateWinPercentage(Integer.parseInt(data[3]), Integer.parseInt(data[4])));
-                
+
                 Server.rank.append("ranking", userData);
             } else {
                 userData = new JSONObject(new JSONArray(Server.rank.getJSONArray("ranking").toString()).get(userIndex).toString());
                 userData.put("vitorias", userData.getInt("vitorias") + Integer.parseInt(data[3]));
                 userData.put("derrotas", userData.getInt("derrotas") + Integer.parseInt(data[4]));
                 userData.put("percentual", User.calculateWinPercentage(userData.getInt("vitorias"), userData.getInt("derrotas")));
-                
+
                 Server.rank = new JSONObject(Server.rank.getJSONArray("ranking").remove(userIndex).toString());
                 Server.rank.append("ranking", userData);
             }
-            
+
             System.out.println(Server.rank.toString());
         } catch (JSONException ex) {
             System.out.println("Failed building user data JSON.");
@@ -149,7 +154,7 @@ public class RequestHandler extends Thread {
         try {
             JSONArray ranking = new JSONArray(Server.rank.getJSONArray("ranking").toString());
             JSONObject userData = new JSONObject();
-            
+
             for (int i = 0; i < ranking.length(); i++) {
                 userData = new JSONObject(ranking.get(i).toString());
 
@@ -163,7 +168,7 @@ public class RequestHandler extends Thread {
                     i = -1;
                 }
             }
-            
+
             return -1;
         } catch (JSONException ex) {
             System.out.println("Failed checking user data.");

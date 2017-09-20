@@ -10,7 +10,11 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Scanner;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -153,7 +157,7 @@ public class Client {
 
             total = printSlots(letters, corrects);
 
-            if (hits >= (int)wordSize / 2) {
+            if (hits >= (int) wordSize / 2) {
                 System.out.println("\nTip: " + tip);
             }
 
@@ -217,8 +221,50 @@ public class Client {
 
         try {
             response = new JSONObject(receiver.nextLine());
+            printOrderedRank(response);
         } catch (JSONException ex) {
             System.out.println("\nFailed to parse rank.");
+        }
+    }
+
+    public static void printOrderedRank(JSONObject ranking) {
+        try {
+            JSONArray usersRank = new JSONArray(ranking.get("ranking").toString());
+
+            List<JSONObject> rankData = new ArrayList<>();
+
+            for (int i = 0; i < usersRank.length(); i++) {
+                rankData.add(usersRank.getJSONObject(i));
+            }
+
+            Collections.sort(rankData, new Comparator<JSONObject>() {
+                private static final String KEY_NAME = "percentual";
+
+                @Override
+                public int compare(JSONObject a, JSONObject b) {
+                    String scoreA = new String();
+                    String scoreB = new String();
+
+                    try {
+                        scoreA = String.valueOf(a.get(KEY_NAME));
+                        scoreB = String.valueOf(b.get(KEY_NAME));
+                    } catch (JSONException e) {
+                        System.out.println("Failed sorting rank.");
+                    }
+
+                    return -scoreA.compareTo(scoreB);
+                }
+            });
+            
+            System.out.println("\nRanking:\n");
+            for (int i = 0; i < usersRank.length(); i++) {
+                System.out.println("User...........: " + rankData.get(i).getString("usuario"));
+                System.out.println("Victories......: " + rankData.get(i).getInt("vitorias"));
+                System.out.println("Defeats........: " + rankData.get(i).getInt("derrotas"));
+                System.out.println("Win percentage.: " + rankData.get(i).getDouble("percentual") + "\n");
+            }
+        } catch (JSONException ex) {
+            System.out.println("Failed formating ranking.");
         }
     }
 

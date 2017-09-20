@@ -1,5 +1,7 @@
 package client;
 
+import java.util.Comparator;
+
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -9,7 +11,7 @@ package client;
  *
  * @author Maikel Maciel Rönnau
  */
-public class User {
+public class User implements Comparator<User> {
 
     String userName;
     String userKey;
@@ -32,8 +34,6 @@ public class User {
         this.defeats = defeats;
         this.winPercentage = calculateWinPercentage();
     }
-    
-    
 
     public String getUserName() {
         return userName;
@@ -54,7 +54,7 @@ public class User {
     public int getWins() {
         return wins;
     }
-    
+
     public void updateWins() {
         this.wins++;
     }
@@ -62,7 +62,7 @@ public class User {
     public int getDefeats() {
         return defeats;
     }
-    
+
     public void updateDefeats() {
         this.defeats++;
     }
@@ -79,5 +79,16 @@ public class User {
         } else {
             return (wins * 100) / (wins + defeats);
         }
+    }
+
+    @Override
+    public int compare(User o1, User o2) {
+        if (o1.getWinPercentage() < o2.getWinPercentage()) {
+            return -1;
+        } else if (o1.getWinPercentage() > o2.getWinPercentage()) {
+            return 1;
+        }
+
+        return 0;
     }
 }
