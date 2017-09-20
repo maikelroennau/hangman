@@ -8,6 +8,7 @@ package server;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
@@ -33,53 +34,53 @@ public class RequestHandler extends Thread {
     }
 
     public void run() {
-
-        String request = this.receiver.nextLine();
-        String command = "";
-
-        if (request.split(" ").length > 0) {
-            command = request.split(" ")[0];
-        } else {
-            command = request;
-        }
-
-        System.out.println("Request received: " + request);
-        System.out.println("Atending request...");
-
-        switch (command) {
-            case "TESTARCONECCAO":
-                getConnectionStatus();
-                break;
-
-            case "BUSCARPALAVRA": {
-                try {
-                    getWord();
-                } catch (JSONException ex) {
-                    System.out.println("Failed creating JSON of word-tip.");
-                }
-            }
-            break;
-
-            case "BUSCARRANKING":
-                getRank();
-                break;
-
-            case "ENCERRARJOGO":
-                updateRankFile(request);
-                break;
-
-            default:
-                this.sender.println("Invalid Comand.");
-                this.sender.flush();
-                break;
-        }
-
-        System.out.println("Finished attending request.");
-        System.out.println("Closing connection...");
         try {
+            String request = this.receiver.nextLine();
+            String command = "";
+
+            if (request.split(" ").length > 0) {
+                command = request.split(" ")[0];
+            } else {
+                command = request;
+            }
+
+            System.out.println("Request received: " + request);
+            System.out.println("Atending request...");
+
+            switch (command) {
+                case "TESTARCONECCAO":
+                    getConnectionStatus();
+                    break;
+
+                case "BUSCARPALAVRA": {
+                    try {
+                        getWord();
+                    } catch (JSONException ex) {
+                        System.out.println("Failed creating JSON of word-tip.");
+                    }
+                }
+                break;
+
+                case "BUSCARRANKING":
+                    getRank();
+                    break;
+
+                case "ENCERRARJOGO":
+                    updateRankData(request);
+                    break;
+
+                default:
+                    this.sender.println("Invalid Comand.");
+                    this.sender.flush();
+                    break;
+            }
+
+            System.out.println("Finished attending request.");
+            System.out.println("Closing connection...");
+        
             this.socket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException | NoSuchElementException e) {
+            System.out.println("Client canceled before the server could attend.");
         }
         System.out.println("Connection closed.");
 
@@ -106,15 +107,32 @@ public class RequestHandler extends Thread {
     }
 
     public void getRank() {
-        // Reads the raking file
-        // Converts it to JSON
-        // Send back to the client
-        System.out.println(Server.rank.toString());
-        this.sender.println(Server.rank.toString());
-        this.sender.flush();
+        try {
+            if (Server.rank.isNull("ranking")) {
+                this.sender.println(Server.rank.toString());
+                this.sender.flush();
+            } else {
+                JSONObject rank = Server.rank;
+                JSONArray rankList = new JSONArray(rank.get("ranking").toString());
+                rank.remove("ranking");
+                JSONObject record;
+                
+                for (int i = 0; i < rankList.length(); i++) {
+                    record = rankList.getJSONObject(i);
+                    record.remove("chave");
+                }
+                
+                rank.put("ranking", rankList);
+                
+                this.sender.println(rank.toString());
+                this.sender.flush();
+            }
+        } catch (JSONException ex) {
+            System.out.println("Failed getting rank.");
+        }
     }
 
-    public void updateRankFile(String request) {
+    public void updateRankData(String request) {
         try {
             // ENCERRARJOGO maikel ronnau 0 1
             String[] data = request.split(" ");
@@ -148,6 +166,8 @@ public class RequestHandler extends Thread {
             System.out.println("Failed building user data JSON.");
             ex.printStackTrace();
         }
+        
+        
     }
 
     public int getUserHistory(String user, String key) {

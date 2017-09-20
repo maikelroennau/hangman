@@ -57,6 +57,7 @@ public class User implements Comparator<User> {
 
     public void updateWins() {
         this.wins++;
+        calculateWinPercentage();
     }
 
     public int getDefeats() {
@@ -65,6 +66,7 @@ public class User implements Comparator<User> {
 
     public void updateDefeats() {
         this.defeats++;
+        calculateWinPercentage();
     }
 
     public float getWinPercentage() {

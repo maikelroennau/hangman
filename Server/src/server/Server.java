@@ -17,6 +17,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -56,9 +60,8 @@ public class Server {
                 RequestHandler request = new RequestHandler(client);
                 request.start();
             }
-
         } catch (IOException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
     }
 
@@ -88,14 +91,34 @@ public class Server {
     public static void loadRank() {
         System.out.println("Reading rank file...");
         try {
-            String rankFile = "rank.json";
+            String rankFilePath = "rank.json";
 
-            JSONObject rankRead = new JSONObject(new Scanner(new File(rankFile)).useDelimiter("\\Z").next());
+            File file = new File(rankFilePath);
+            Scanner fileScanner = new Scanner(file);
+            String dataScanned = fileScanner.useDelimiter("\\Z").next();
+            fileScanner.close();
+            
+            JSONObject rankRead = new JSONObject(dataScanned);
             rank = rankRead;
 
             System.out.println("Rank file sucessfull loaded.");
         } catch (FileNotFoundException | JSONException ex) {
             System.out.println("Failed loading rank file.");
+            System.out.println("Creating new rank file.");
+            createRankFile();
+        }
+    }
+
+    public static void createRankFile() {
+        try {
+            PrintWriter writer = new PrintWriter("rank.json", "UTF-8");
+            writer.println("{ \"ranking\": [] }");
+            writer.flush();
+            writer.close();
+        } catch (FileNotFoundException | UnsupportedEncodingException ex) {
+            System.out.println("Failed creating rank file.");
+            System.out.println("Shutting server down.");
+            System.exit(0);
         }
     }
 }

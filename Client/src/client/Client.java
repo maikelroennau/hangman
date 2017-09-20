@@ -24,9 +24,9 @@ import org.json.JSONObject;
  */
 public class Client {
 
-    static String userName;
-    static String userKey;
-    static User user;
+    private static String userName;
+    private static String userKey;
+    private static User user;
 
     /**
      * @param args the command line arguments
@@ -95,7 +95,7 @@ public class Client {
                         break;
 
                     case 3:
-                        finishSession(receiver, sender);
+                        pushResults(receiver, sender, user);
                         System.out.println("\nEnding session...");
                         socket.close();
                         System.exit(0);
@@ -107,7 +107,7 @@ public class Client {
                 }
             } while (option != 3);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Failed connecting the server.");
         }
     }
 
@@ -229,7 +229,7 @@ public class Client {
 
     public static void printOrderedRank(JSONObject ranking) {
         try {
-            JSONArray usersRank = new JSONArray(ranking.get("ranking").toString());
+            JSONArray usersRank = ranking.getJSONArray("ranking");
 
             List<JSONObject> rankData = new ArrayList<>();
 
@@ -255,7 +255,7 @@ public class Client {
                     return -scoreA.compareTo(scoreB);
                 }
             });
-            
+
             System.out.println("\nRanking:\n");
             for (int i = 0; i < usersRank.length(); i++) {
                 System.out.println("User...........: " + rankData.get(i).getString("usuario"));
@@ -264,27 +264,26 @@ public class Client {
                 System.out.println("Win percentage.: " + rankData.get(i).getDouble("percentual") + "\n");
             }
         } catch (JSONException ex) {
-            System.out.println("Failed formating ranking.");
+            System.out.println("No ranking information.\n");
         }
     }
 
-    public static void finishSession(Scanner receiver, PrintWriter sender) {
-        sender.println("ENCERRARJOGO maikel ronnau 99 49");
-        sender.flush();
-//        if (user.getWins() + user.getDefeats() != 0) {
-//            System.out.println("\nUpdating scores to server...");
-//
-//            String command = "ENCERRARJOGO";
-//            command += " " + user.getUserName();
-//            command += " " + user.getUserKey();
-//            command += " " + user.getWins();
-//            command += " " + user.getDefeats();
-//            
-//            System.out.println(command);
-//            sender.println(command);
-//            sender.flush();
-//
-//            System.out.println("User score updated.");
-//        }
+    public static void pushResults(Scanner receiver, PrintWriter sender, User user) {
+
+        if (user.getWins() + user.getDefeats() != 0) {
+            System.out.println("\nUpdating scores to server...");
+
+            String command = "ENCERRARJOGO";
+            command += " " + user.getUserName();
+            command += " " + user.getUserKey();
+            command += " " + user.getWins();
+            command += " " + user.getDefeats();
+            
+            System.out.println(command);
+            sender.println(command);
+            sender.flush();
+
+            System.out.println("User score updated.");
+        }
     }
 }
