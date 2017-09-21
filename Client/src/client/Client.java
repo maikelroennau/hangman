@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package client;
 
 import java.io.IOException;
@@ -11,8 +6,6 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Scanner;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,7 +13,7 @@ import org.json.JSONObject;
 
 /**
  *
- * @author 110453310
+ * @author Maikel Maciel Rönnau
  */
 public class Client {
 
@@ -28,23 +21,22 @@ public class Client {
     private static String userKey;
     private static User user;
 
+    private static String ipServer;
+    private static int portServer;
+
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
 
-//        String userName;
-//        String userKey;
         Scanner scanner = new Scanner(System.in);
 
         System.out.print("Enter the Server IP address: ");
-//        String ipServer = scanner.nextLine();
-        String ipServer = "localhost";
+        ipServer = scanner.nextLine();
 
         System.out.print("Enter the Server port: ");
-//        int portServer = scanner.nextInt();
-//        scanner.nextLine();
-        int portServer = 8765;
+        portServer = scanner.nextInt();
+        scanner.nextLine();
 
         System.out.println("Testing connection to server...");
         if (Utils.testConnection(ipServer, portServer)) {
@@ -56,12 +48,11 @@ public class Client {
         }
 
         System.out.print("Enter a username: ");
-//        userName = scanner.nextLine();
-        userName = "maikel";
+        userName = scanner.nextLine();
 
         System.out.print("Enter a user key: ");
-//        userKey = scanner.nextLine();
-        userKey = "ronnau";
+        userKey = scanner.nextLine();
+        System.out.println("");
 
         user = new User(userName, userKey);
 
@@ -81,7 +72,7 @@ public class Client {
                 System.out.print("\nOption: ");
                 option = scanner.nextInt();
 
-                socket = new Socket(ipServer, portServer);
+                socket = Utils.getSocketConnection(ipServer, portServer);
                 receiver = new Scanner(socket.getInputStream());
                 sender = new PrintWriter(socket.getOutputStream());
 
@@ -110,10 +101,6 @@ public class Client {
             System.out.println("Failed connecting the server.");
         }
     }
-    
-    public void selectExecution(Scanner receiver, PrintWriter sender, int option) {
-        
-    }
 
     public static void play(Scanner receiver, PrintWriter sender) {
         System.out.println("\nRequesting a word from the server...");
@@ -141,7 +128,6 @@ public class Client {
         int errors = 0;
         int hits = 0;
         int wordSize = letters.size();
-        int total = 0;
 
         ArrayList<Character> corrects = new ArrayList<>();
         ArrayList<Character> wrongs = new ArrayList<>();
@@ -159,7 +145,7 @@ public class Client {
             System.out.println("\tCorrects: " + Arrays.toString(corrects.toArray()).replace("[", "").replace("]", ""));
             System.out.println("\t\t\t\tWrongs..: " + Arrays.deepToString(wrongs.toArray()).replace("[", "").replace("]", ""));
 
-            total = printSlots(letters, corrects);
+            printSlots(letters, corrects);
 
             if (hits >= (int) wordSize / 2) {
                 System.out.println("\nTip: " + tip);
@@ -175,13 +161,13 @@ public class Client {
 
             if (letters.contains(guess)) {
                 corrects.add(guess);
-                hits++;
+                hits += Collections.frequency(letters, guess);
             } else {
                 wrongs.add(guess);
                 errors++;
             }
 
-            if (total == wordSize) {
+            if (hits == wordSize) {
                 status = true;
                 break;
             }
@@ -217,8 +203,17 @@ public class Client {
     }
 
     public static void showRank(Scanner receiver, PrintWriter sender) {
-        pushResults(receiver, sender, user, true);
-        
+        try {
+            Socket socket = Utils.getSocketConnection(ipServer, portServer);
+            Scanner quickReceiver = new Scanner(socket.getInputStream());
+            PrintWriter quickSender = new PrintWriter(socket.getOutputStream());
+
+            pushResults(quickReceiver, quickSender, user, true);
+        } catch (IOException ex) {
+            System.out.println("\nFailed pushing user data to the server.");
+            System.out.println("The results will not be the most recent ones.");
+        }
+
         System.out.println("Requesting rank information...");
         sender.println("BUSCARRANKING");
         sender.flush();
@@ -227,50 +222,19 @@ public class Client {
 
         try {
             response = new JSONObject(receiver.nextLine());
-            printOrderedRank(response);
-        } catch (JSONException ex) {
-            System.out.println("\nFailed to parse rank.");
-        }
-    }
 
-    public static void printOrderedRank(JSONObject ranking) {
-        try {
-            JSONArray usersRank = ranking.getJSONArray("ranking");
-
-            List<JSONObject> rankData = new ArrayList<>();
-
-            for (int i = 0; i < usersRank.length(); i++) {
-                rankData.add(usersRank.getJSONObject(i));
-            }
-
-            Collections.sort(rankData, new Comparator<JSONObject>() {
-                private static final String KEY_NAME = "percentual";
-
-                @Override
-                public int compare(JSONObject a, JSONObject b) {
-                    String scoreA = new String();
-                    String scoreB = new String();
-
-                    try {
-                        scoreA = String.valueOf(a.get(KEY_NAME));
-                        scoreB = String.valueOf(b.get(KEY_NAME));
-                    } catch (JSONException e) {
-                        System.out.println("Failed sorting rank.");
-                    }
-
-                    return -scoreA.compareTo(scoreB);
-                }
-            });
+            JSONArray usersRank = response.getJSONArray("ranking");
 
             System.out.println("\nRanking:\n");
             for (int i = 0; i < usersRank.length(); i++) {
-                System.out.println("User...........: " + rankData.get(i).getString("usuario"));
-                System.out.println("Victories......: " + rankData.get(i).getInt("vitorias"));
-                System.out.println("Defeats........: " + rankData.get(i).getInt("derrotas"));
-                System.out.println("Win percentage.: " + rankData.get(i).getDouble("percentual") + "\n");
+                System.out.println("User...........: " + usersRank.getJSONObject(i).getString("usuario"));
+                System.out.println("Victories......: " + usersRank.getJSONObject(i).getInt("vitorias"));
+                System.out.println("Defeats........: " + usersRank.getJSONObject(i).getInt("derrotas"));
+                System.out.println("Win percentage.: " + usersRank.getJSONObject(i).getDouble("percentual") + "\n");
+                usersRank.getJSONObject(i).getString("usuario");
             }
         } catch (JSONException ex) {
-            System.out.println("No ranking information.\n");
+            System.out.println("\nFailed to parse rank.");
         }
     }
 
@@ -302,7 +266,7 @@ public class Client {
             System.out.println("\nFailed to parse user data back.");
         }
     }
-    
+
     public static void pushResults(Scanner receiver, PrintWriter sender, User user, boolean silent) {
         System.out.println("\nUpdating scores to server...");
 
@@ -315,6 +279,7 @@ public class Client {
         sender.println(command);
         sender.flush();
 
-        System.out.println(receiver.nextLine());
+        user.resetScores();
+        receiver.nextLine();
     }
 }

@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package server;
 
 import java.io.FileNotFoundException;
@@ -10,6 +5,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
@@ -19,7 +18,7 @@ import org.json.JSONObject;
 
 /**
  *
- * @author 110453310
+ * @author Maikel Maciel Rönnau
  */
 public class RequestHandler extends Thread {
 
@@ -44,7 +43,7 @@ public class RequestHandler extends Thread {
                 command = request;
             }
 
-            System.out.println("Request received: " + request);
+            System.out.println("Request received: " + command);
             System.out.println("Atending request...");
 
             switch (command) {
@@ -114,19 +113,62 @@ public class RequestHandler extends Thread {
                 JSONObject rank = new JSONObject(Server.rank.toString());
                 JSONArray rankList = new JSONArray(rank.getJSONArray("ranking").toString());
                 rank.remove("ranking");
-
+                
                 for (int i = 0; i < rankList.length(); i++) {
                     rankList.getJSONObject(i).remove("chave");
                     rank.append("ranking", rankList.getJSONObject(i));
                 }
-
-                this.sender.println(rank.toString());
+                
+                String ordered = sortRank(rank);
+                
+                this.sender.println(ordered);
                 this.sender.flush();
             }
         } catch (JSONException ex) {
             System.out.println("Failed getting rank.");
-            ex.printStackTrace();
         }
+    }
+    
+    public String sortRank(JSONObject ranking) {
+        try {
+            JSONArray usersRank = ranking.getJSONArray("ranking");
+            ranking.remove("ranking");
+
+            List<JSONObject> rankData = new ArrayList<>();
+
+            for (int i = 0; i < usersRank.length(); i++) {
+                rankData.add(usersRank.getJSONObject(i));
+            }
+
+            Collections.sort(rankData, new Comparator<JSONObject>() {
+                private static final String KEY_NAME = "percentual";
+
+                @Override
+                public int compare(JSONObject a, JSONObject b) {
+                    String scoreA = new String();
+                    String scoreB = new String();
+
+                    try {
+                        scoreA = String.valueOf(a.get(KEY_NAME));
+                        scoreB = String.valueOf(b.get(KEY_NAME));
+                    } catch (JSONException e) {
+                        System.out.println("Failed sorting rank.");
+                    }
+
+                    return -scoreA.compareTo(scoreB);
+                }
+            });
+
+            for (int i = 0; i < usersRank.length(); i++) {
+                ranking.append("ranking", rankData.get(i));
+            }
+            
+            return ranking.toString();
+        } catch (JSONException ex) {
+            System.out.println("No ranking information.\n");
+        }
+        
+        return "{}";
     }
 
     public void updateRankData(String request) {

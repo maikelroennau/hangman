@@ -1,23 +1,16 @@
 package client;
 
-import java.util.Comparator;
-
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 /**
  *
  * @author Maikel Maciel Rönnau
  */
-public class User implements Comparator<User> {
+public class User {
 
     String userName;
     String userKey;
     int wins;
     int defeats;
-    float winPercentage;
+    double winPercentage;
 
     public User(String userName, String userKey) {
         this.userName = userName;
@@ -69,28 +62,32 @@ public class User implements Comparator<User> {
         calculateWinPercentage();
     }
 
-    public float getWinPercentage() {
+    public double getWinPercentage() {
         return winPercentage;
     }
 
-    public float calculateWinPercentage() {
-        if (wins + defeats == 0) {
+    public double calculateWinPercentage() {
+        if (this.wins + defeats == 0) {
             return 0;
         } else if (this.defeats == 0) {
             return 100;
         } else {
-            return (wins * 100) / (wins + defeats);
+            return Math.round(((float) this.wins * 100) / ((float) this.wins + (float) this.defeats) * 100.0) / 100.0;
         }
     }
 
-    @Override
-    public int compare(User o1, User o2) {
-        if (o1.getWinPercentage() < o2.getWinPercentage()) {
-            return -1;
-        } else if (o1.getWinPercentage() > o2.getWinPercentage()) {
-            return 1;
+    public static double calculateWinPercentage(int wins, int defeats) {
+        if (wins + defeats == 0) {
+            return 0;
+        } else if (defeats == 0) {
+            return 100;
+        } else {
+            return Math.round(((float) wins * 100) / ((float) wins + (float) defeats) * 100.0) / 100.0;
         }
+    }
 
-        return 0;
+    public void resetScores() {
+        this.wins = 0;
+        this.defeats = 0;
     }
 }
