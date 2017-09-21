@@ -25,6 +25,5 @@ Independently of which option you choose, the process is the same:
 
 **Maikel Maciel Rönnau**  
 *Computer Scientist  
-maikel.ronnau@ulbra.edu.br  
-[Linkedin](https://br.linkedin.com/in/maikelronnau)
-[GitHub](https://github.com/maikelronnau)*
+maikel.ronnau@gmail.com  
+[Linkedin](https://br.linkedin.com/in/maikelronnau) - [GitHub](https://github.com/maikelronnau)*
