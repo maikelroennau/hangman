@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Scanner;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -97,7 +95,7 @@ public class Server {
             Scanner fileScanner = new Scanner(file);
             String dataScanned = fileScanner.useDelimiter("\\Z").next();
             fileScanner.close();
-            
+
             JSONObject rankRead = new JSONObject(dataScanned);
             rank = rankRead;
 

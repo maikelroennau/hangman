@@ -5,14 +5,14 @@
  */
 package server;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -52,14 +52,14 @@ public class RequestHandler extends Thread {
                     getConnectionStatus();
                     break;
 
-                case "BUSCARPALAVRA": {
+                case "BUSCARPALAVRA":
                     try {
                         getWord();
                     } catch (JSONException ex) {
                         System.out.println("Failed creating JSON of word-tip.");
                     }
-                }
-                break;
+
+                    break;
 
                 case "BUSCARRANKING":
                     getRank();
@@ -77,13 +77,12 @@ public class RequestHandler extends Thread {
 
             System.out.println("Finished attending request.");
             System.out.println("Closing connection...");
-        
+
             this.socket.close();
         } catch (IOException | NoSuchElementException e) {
             System.out.println("Client canceled before the server could attend.");
         }
         System.out.println("Connection closed.");
-
     }
 
     public void getConnectionStatus() {
@@ -112,32 +111,29 @@ public class RequestHandler extends Thread {
                 this.sender.println(Server.rank.toString());
                 this.sender.flush();
             } else {
-                JSONObject rank = Server.rank;
-                JSONArray rankList = new JSONArray(rank.get("ranking").toString());
+                JSONObject rank = new JSONObject(Server.rank.toString());
+                JSONArray rankList = new JSONArray(rank.getJSONArray("ranking").toString());
                 rank.remove("ranking");
-                JSONObject record;
-                
+
                 for (int i = 0; i < rankList.length(); i++) {
-                    record = rankList.getJSONObject(i);
-                    record.remove("chave");
+                    rankList.getJSONObject(i).remove("chave");
+                    rank.append("ranking", rankList.getJSONObject(i));
                 }
-                
-                rank.put("ranking", rankList);
-                
+
                 this.sender.println(rank.toString());
                 this.sender.flush();
             }
         } catch (JSONException ex) {
             System.out.println("Failed getting rank.");
+            ex.printStackTrace();
         }
     }
 
     public void updateRankData(String request) {
-        try {
-            // ENCERRARJOGO maikel ronnau 0 1
-            String[] data = request.split(" ");
+        JSONObject backup = new JSONObject(Server.rank);
 
-            System.out.println(Server.rank.toString());
+        try {
+            String[] data = request.split(" ");
 
             int userIndex = getUserHistory(data[1], data[2]);
             JSONObject userData;
@@ -152,28 +148,46 @@ public class RequestHandler extends Thread {
 
                 Server.rank.append("ranking", userData);
             } else {
-                userData = new JSONObject(new JSONArray(Server.rank.getJSONArray("ranking").toString()).get(userIndex).toString());
+                userData = Server.rank.getJSONArray("ranking").getJSONObject(userIndex);
+
                 userData.put("vitorias", userData.getInt("vitorias") + Integer.parseInt(data[3]));
                 userData.put("derrotas", userData.getInt("derrotas") + Integer.parseInt(data[4]));
                 userData.put("percentual", User.calculateWinPercentage(userData.getInt("vitorias"), userData.getInt("derrotas")));
-
-                Server.rank = new JSONObject(Server.rank.getJSONArray("ranking").remove(userIndex).toString());
-                Server.rank.append("ranking", userData);
             }
 
-            System.out.println(Server.rank.toString());
+            JSONObject user = new JSONObject(userData.toString());
+            userData = null;
+            user.remove("chave");
+
+            saveToDisk();
+
+            this.sender.println(user.toString());
+            user = null;
+            this.sender.flush();
         } catch (JSONException ex) {
             System.out.println("Failed building user data JSON.");
-            ex.printStackTrace();
+            System.out.println("Restoring backup...");
+            Server.rank = backup;
+            saveToDisk();
+            System.out.println("Backup restored. Last entry is lost.");
         }
-        
-        
+    }
+
+    public void saveToDisk() {
+        try {
+            PrintWriter writer = new PrintWriter("rank.json", "UTF-8");
+            writer.println(Server.rank.toString());
+            writer.flush();
+            writer.close();
+        } catch (FileNotFoundException | UnsupportedEncodingException ex) {
+            System.out.println("Failed updating rank file on disk.");
+        }
     }
 
     public int getUserHistory(String user, String key) {
         try {
-            JSONArray ranking = new JSONArray(Server.rank.getJSONArray("ranking").toString());
-            JSONObject userData = new JSONObject();
+            JSONArray ranking = Server.rank.getJSONArray("ranking");
+            JSONObject userData;
 
             for (int i = 0; i < ranking.length(); i++) {
                 userData = new JSONObject(ranking.get(i).toString());
@@ -185,15 +199,14 @@ public class RequestHandler extends Thread {
                 } catch (JSONException e) {
                     System.out.println("User not found. Creating new entry.");
                     userData = null;
-                    i = -1;
+                    return -1;
                 }
             }
 
             return -1;
         } catch (JSONException ex) {
-            System.out.println("Failed checking user data.");
+            System.out.println("The rank does not contain any entry.");
+            return -1;
         }
-
-        return -1;
     }
 }

@@ -96,19 +96,23 @@ public class Client {
 
                     case 3:
                         pushResults(receiver, sender, user);
-                        System.out.println("\nEnding session...");
+                        System.out.println("Ending session...");
                         socket.close();
                         System.exit(0);
                         break;
 
                     default:
-                        System.out.println("\nInvalid option.");
+                        System.out.println("\nInvalid option.\n");
                         break;
                 }
             } while (option != 3);
         } catch (IOException e) {
             System.out.println("Failed connecting the server.");
         }
+    }
+    
+    public void selectExecution(Scanner receiver, PrintWriter sender, int option) {
+        
     }
 
     public static void play(Scanner receiver, PrintWriter sender) {
@@ -213,7 +217,9 @@ public class Client {
     }
 
     public static void showRank(Scanner receiver, PrintWriter sender) {
-        System.out.println("\nRequesting rank information...");
+        pushResults(receiver, sender, user, true);
+        
+        System.out.println("Requesting rank information...");
         sender.println("BUSCARRANKING");
         sender.flush();
 
@@ -269,21 +275,46 @@ public class Client {
     }
 
     public static void pushResults(Scanner receiver, PrintWriter sender, User user) {
+        System.out.println("\nUpdating scores to server...");
 
-        if (user.getWins() + user.getDefeats() != 0) {
-            System.out.println("\nUpdating scores to server...");
+        String command = "ENCERRARJOGO";
+        command += " " + user.getUserName();
+        command += " " + user.getUserKey();
+        command += " " + user.getWins();
+        command += " " + user.getDefeats();
 
-            String command = "ENCERRARJOGO";
-            command += " " + user.getUserName();
-            command += " " + user.getUserKey();
-            command += " " + user.getWins();
-            command += " " + user.getDefeats();
-            
-            System.out.println(command);
-            sender.println(command);
-            sender.flush();
+        sender.println(command);
+        sender.flush();
 
-            System.out.println("User score updated.");
+        System.out.println("User score updated.");
+
+        JSONObject response = null;
+
+        try {
+            response = new JSONObject(receiver.nextLine());
+
+            System.out.println("\nUser data:");
+            System.out.println("Username.......: " + response.getString("usuario"));
+            System.out.println("Victories......: " + response.getInt("vitorias"));
+            System.out.println("Defeats........: " + response.getInt("derrotas"));
+            System.out.println("Win percentage.: " + response.getDouble("percentual") + "\n");
+        } catch (JSONException ex) {
+            System.out.println("\nFailed to parse user data back.");
         }
+    }
+    
+    public static void pushResults(Scanner receiver, PrintWriter sender, User user, boolean silent) {
+        System.out.println("\nUpdating scores to server...");
+
+        String command = "ENCERRARJOGO";
+        command += " " + user.getUserName();
+        command += " " + user.getUserKey();
+        command += " " + user.getWins();
+        command += " " + user.getDefeats();
+
+        sender.println(command);
+        sender.flush();
+
+        System.out.println(receiver.nextLine());
     }
 }
