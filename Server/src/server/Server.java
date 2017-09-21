@@ -1,29 +1,32 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package server;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Scanner;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  *
- * @author 110453310
+ * @author Maikel Maciel Rönnau
  */
 public class Server {
 
     static ArrayList<String> words = new ArrayList<>();
     static HashMap<String, String> tips = new HashMap<>();
+
+    static JSONObject rank = new JSONObject();
 
     /**
      * @param args the command line arguments
@@ -31,6 +34,7 @@ public class Server {
     public static void main(String[] args) {
 
         loadWordList();
+        loadRank();
 
         ServerSocket server;
         int port = 8765;
@@ -49,9 +53,10 @@ public class Server {
                 RequestHandler request = new RequestHandler(client);
                 request.start();
             }
-
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Failed starting server.");
+            System.out.println("Shutting down...");
+            System.exit(0);
         }
     }
 
@@ -74,6 +79,40 @@ public class Server {
             System.out.println("Word list sucessfull loaded.");
         } catch (IOException ex) {
             System.out.println("Failed loading word list. Shutting down...");
+            System.exit(0);
+        }
+    }
+
+    public static void loadRank() {
+        System.out.println("Reading rank file...");
+        try {
+            String rankFilePath = "rank.json";
+
+            File file = new File(rankFilePath);
+            Scanner fileScanner = new Scanner(file);
+            String dataScanned = fileScanner.useDelimiter("\\Z").next();
+            fileScanner.close();
+
+            JSONObject rankRead = new JSONObject(dataScanned);
+            rank = rankRead;
+
+            System.out.println("Rank file sucessfull loaded.");
+        } catch (FileNotFoundException | JSONException ex) {
+            System.out.println("Failed loading rank file.");
+            System.out.println("Creating new rank file.");
+            createRankFile();
+        }
+    }
+
+    public static void createRankFile() {
+        try {
+            PrintWriter writer = new PrintWriter("rank.json", "UTF-8");
+            writer.println("{ \"ranking\": [] }");
+            writer.flush();
+            writer.close();
+        } catch (FileNotFoundException | UnsupportedEncodingException ex) {
+            System.out.println("Failed creating rank file.");
+            System.out.println("Shutting server down.");
             System.exit(0);
         }
     }
